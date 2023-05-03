@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
-from forms import UserAddForm, LoginForm, MessageForm
+from forms import UserAddForm, LoginForm, MessageForm, CSRFProtectFrom
 from models import db, connect_db, User, Message
 
 load_dotenv()
@@ -22,9 +22,21 @@ toolbar = DebugToolbarExtension(app)
 
 connect_db(app)
 
+### login decorator ###
+
+def authenticate_login(f):
+    def wrapper(*args, **kwargs):
+        if not session.get(CURR_USER_KEY):
+            flash("You must be logged in to view page!")
+            return redirect("/")
+        return f(*args, **kwargs)
+
+    return wrapper
 
 ##############################################################################
 # User signup/login/logout
+
+
 
 
 @app.before_request
@@ -66,6 +78,7 @@ def signup():
     do_logout()
 
     form = UserAddForm()
+
 
     if form.validate_on_submit():
         try:
@@ -112,10 +125,19 @@ def login():
 
 
 @app.post('/logout')
+@authenticate_login
 def logout():
     """Handle logout of user and redirect to homepage."""
 
-    form = g.csrf_form
+    form = g.csrf_form = CSRFProtectFrom()
+
+    if form.validate_on_submit():
+        flash("Logged Out Successfully")
+        do_logout()
+        return redirect("/login")
+    else:
+        flash("NO!")
+
 
     # IMPLEMENT THIS AND FIX BUG
     # DO NOT CHANGE METHOD ON ROUTE

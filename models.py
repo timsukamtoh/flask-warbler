@@ -92,7 +92,7 @@ class User(db.Model):
     followers = db.relationship(
         "User",
         secondary="follows",
-        primaryjoin=(Follow.user_being_followed_id == id),
+        primaryjoin=(Follow.user_being_followed_id == id), #FIXME: just in case
         secondaryjoin=(Follow.user_following_id == id),
         backref="following",
     )
