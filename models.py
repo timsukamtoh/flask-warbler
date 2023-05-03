@@ -86,32 +86,7 @@ class User(db.Model):
         db.String(100),
         nullable=False,
     )
-    """
-        messages = db.relationship(
-            "User",
-            secondary="follows",  # "secondary" keyword indicates the join table
-            primaryjoin=(Follow.user_being_followed_id == id),
-            secondaryjoin=(Follow.user_following_id == id),
-            backref="likes",
 
-
-        class users_message_likes(db.Model):
-
-            __tablename__ = 'users_message_likes'
-
-            user_being_followed_id = db.Column(
-                db.Integer,
-                db.ForeignKey('users.id', ondelete="cascade"),
-                primary_key=True,
-            )
-
-            user_following_id = db.Column(
-                db.Integer,
-                db.ForeignKey('users.id', ondelete="cascade"),
-                primary_key=True,
-            )
-            )
-    """
     messages = db.relationship('Message', backref="user")
 
     followers = db.relationship(
@@ -207,6 +182,28 @@ class Message(db.Model):
         nullable=False,
     )
 
+    liked_by_users = db.relationship(
+        "User",
+        secondary="likes",  # "secondary" keyword indicates the join table
+        backref="liked_messages",
+    )
+
+class Like(db.Model):
+    """Connection of a User <-> Liked Message."""
+
+    __tablename__ = "likes"
+
+    liked_by_user_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id', ondelete="cascade"),
+        primary_key=True,
+    )
+
+    message_liked_id = db.Column(
+        db.Integer,
+        db.ForeignKey('messages.id', ondelete="cascade"),
+        primary_key=True,
+    )
 
 def connect_db(app):
     """Connect this database to provided Flask app.
