@@ -86,7 +86,32 @@ class User(db.Model):
         db.String(100),
         nullable=False,
     )
+    """
+        messages = db.relationship(
+            "User",
+            secondary="follows",  # "secondary" keyword indicates the join table
+            primaryjoin=(Follow.user_being_followed_id == id),
+            secondaryjoin=(Follow.user_following_id == id),
+            backref="likes",
 
+
+        class users_message_likes(db.Model):
+
+            __tablename__ = 'users_message_likes'
+
+            user_being_followed_id = db.Column(
+                db.Integer,
+                db.ForeignKey('users.id', ondelete="cascade"),
+                primary_key=True,
+            )
+
+            user_following_id = db.Column(
+                db.Integer,
+                db.ForeignKey('users.id', ondelete="cascade"),
+                primary_key=True,
+            )
+            )
+    """
     messages = db.relationship('Message', backref="user")
 
     followers = db.relationship(

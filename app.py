@@ -6,7 +6,7 @@ from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
-from forms import UserAddForm, UserEditForm, LoginForm, MessageForm, CSRFProtectFrom
+from forms import UserAddForm, UserEditForm, LoginForm, MessageForm, CSRFProtectForm
 from models import db, connect_db, User, Message
 
 load_dotenv()
@@ -41,8 +41,9 @@ def authenticate_login(f):
 
 
 @app.before_request
-def apply_crsf_protect():
-    g.csrf_form = CSRFProtectFrom()
+def apply_csrf_protect():
+    """add a CSRF token before requests"""
+    g.csrf_form = CSRFProtectForm()
 
 
 @app.before_request
@@ -130,11 +131,9 @@ def login():
 
 
 @app.post('/logout')
-# @authenticate_login
+@authenticate_login
 def logout():
     """Handle logout of user and redirect to homepage."""
-
-    # form = g.csrf_form = CSRFProtectFrom()
 
     if not g.csrf_form.validate_on_submit() or not g.user:
         flash("Unauthorized Access Attempt")
@@ -150,16 +149,16 @@ def logout():
 # General user routes:
 
 @app.get('/users')
-# @authenticate_login
+@authenticate_login
 def list_users():
     """Page with listing of users.
 
     Can take a 'q' param in querystring to search by that username.
     """
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
     search = request.args.get('q')
 
@@ -172,64 +171,57 @@ def list_users():
 
 
 @app.get('/users/<int:user_id>')
-# @authenticate_login
+@authenticate_login
 def show_user(user_id):
     """Show user profile."""
 
-    form = CSRFProtectFrom()
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
     user = User.query.get_or_404(user_id)
 
-    return render_template('users/show.html', user=user, form=form)
+    return render_template('users/show.html', user=user)
 
 
 @app.get('/users/<int:user_id>/following')
-# @authenticate_login
+@authenticate_login
 def show_following(user_id):
     """Show list of people this user is following."""
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
-    form = CSRFProtectFrom()
     user = User.query.get_or_404(user_id)
 
-    return render_template('users/following.html', user=user, form=form)
+    return render_template('users/following.html', user=user)
 
 
 @app.get('/users/<int:user_id>/followers')
-# @authenticate_login
+@authenticate_login
 def show_followers(user_id):
     """Show list of followers of this user."""
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
-    form = CSRFProtectFrom()
     user = User.query.get_or_404(user_id)
 
-    return render_template('users/followers.html', user=user, form=form)
+    return render_template('users/followers.html', user=user)
 
 
 @app.post('/users/follow/<int:follow_id>')
-# @authenticate_login
+@authenticate_login
 def start_following(follow_id):
     """Add a follow for the currently-logged-in user.
 
     Redirect to following page for the current for the current user.
     """
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-
-    form = CSRFProtectFrom()
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
     if form.validate_on_submit():
         followed_user = User.query.get_or_404(follow_id)
@@ -243,17 +235,16 @@ def start_following(follow_id):
 
 
 @app.post('/users/stop-following/<int:follow_id>')
-# @authenticate_login
+@authenticate_login
 def stop_following(follow_id):
     """Have currently-logged-in-user stop following this user.
 
     Redirect to following page for the current for the current user.
     """
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
-    form = CSRFProtectFrom()
 
     if form.validate_on_submit():
         followed_user = User.query.get_or_404(follow_id)
@@ -266,16 +257,16 @@ def stop_following(follow_id):
         return redirect("/")
 
 
-@app.route('/users/<int:user_id>/edit', methods=["GET", "POST"])
-def edit_profile(user_id):
+@app.route('/users/profile_edit', methods=["GET", "POST"])
+def edit_profile():
     """Edit profile for current user."""
+    #FIXME: use g.user
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
-    user = User.query.get_or_404(user_id)
-    form = UserEditForm(obj=user)
+    form = UserEditForm(obj=g.user)
 
     if form.validate_on_submit():
         password = form.password.data
@@ -293,26 +284,25 @@ def edit_profile(user_id):
             db.session.commit()
 
             flash(f"{user.username} updated")
-            return redirect(f"/users/{user_id}")
+            return redirect(f"/users/{user.id}")
         else:
             form.username.errors = ["Invalid password"]
     return render_template("users/edit.html", form=form)
 
 
 @app.post('/users/delete')
-# @authenticate_login
+@authenticate_login
 def delete_user():
     """Delete user.
 
     Redirect to signup page.
     """
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
     do_logout()
-    form = CSRFProtectFrom()
 
     if form.validate_on_submit():
 
@@ -329,16 +319,16 @@ def delete_user():
 
 
 @app.route('/messages/new', methods=["GET", "POST"])
-# @authenticate_login
+@authenticate_login
 def add_message():
     """Add a message:
 
     Show form if GET. If valid, update message and redirect to user page.
     """
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
     form = MessageForm()
 
@@ -353,20 +343,20 @@ def add_message():
 
 
 @app.get('/messages/<int:message_id>')
-# @authenticate_login
+@authenticate_login
 def show_message(message_id):
     """Show a message."""
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
     msg = Message.query.get_or_404(message_id)
     return render_template('messages/show.html', message=msg)
 
 
 @app.post('/messages/<int:message_id>/delete')
-# @authenticate_login
+@authenticate_login
 def delete_message(message_id):
     """Delete a message.
 
@@ -374,10 +364,9 @@ def delete_message(message_id):
     Redirect to user page on success.
     """
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-    form = CSRFProtectFrom()
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
 
     if form.validate_on_submit():
         msg = Message.query.get_or_404(message_id)
