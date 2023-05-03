@@ -24,10 +24,11 @@ connect_db(app)
 
 ### login decorator ###
 
+
 def authenticate_login(f):
     def wrapper(*args, **kwargs):
-        if not session.get(CURR_USER_KEY):
-            flash("You must be logged in to view page!")
+        if not g.user:
+            flash("Access unauthorized.", "danger")
             return redirect("/")
         return f(*args, **kwargs)
 
@@ -35,8 +36,6 @@ def authenticate_login(f):
 
 ##############################################################################
 # User signup/login/logout
-
-
 
 
 @app.before_request
@@ -78,7 +77,6 @@ def signup():
     do_logout()
 
     form = UserAddForm()
-
 
     if form.validate_on_submit():
         try:
@@ -125,7 +123,7 @@ def login():
 
 
 @app.post('/logout')
-@authenticate_login
+# @authenticate_login
 def logout():
     """Handle logout of user and redirect to homepage."""
 
@@ -138,7 +136,6 @@ def logout():
     else:
         flash("NO!")
 
-
     # IMPLEMENT THIS AND FIX BUG
     # DO NOT CHANGE METHOD ON ROUTE
 
@@ -147,6 +144,7 @@ def logout():
 # General user routes:
 
 @app.get('/users')
+# @authenticate_login
 def list_users():
     """Page with listing of users.
 
@@ -168,8 +166,11 @@ def list_users():
 
 
 @app.get('/users/<int:user_id>')
+# @authenticate_login
 def show_user(user_id):
     """Show user profile."""
+
+    form = CSRFProtectFrom()
 
     if not g.user:
         flash("Access unauthorized.", "danger")
@@ -177,10 +178,11 @@ def show_user(user_id):
 
     user = User.query.get_or_404(user_id)
 
-    return render_template('users/show.html', user=user)
+    return render_template('users/show.html', user=user, form=form)
 
 
 @app.get('/users/<int:user_id>/following')
+# @authenticate_login
 def show_following(user_id):
     """Show list of people this user is following."""
 
@@ -193,6 +195,7 @@ def show_following(user_id):
 
 
 @app.get('/users/<int:user_id>/followers')
+# @authenticate_login
 def show_followers(user_id):
     """Show list of followers of this user."""
 
@@ -205,6 +208,7 @@ def show_followers(user_id):
 
 
 @app.post('/users/follow/<int:follow_id>')
+# @authenticate_login
 def start_following(follow_id):
     """Add a follow for the currently-logged-in user.
 
@@ -215,29 +219,41 @@ def start_following(follow_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    followed_user = User.query.get_or_404(follow_id)
-    g.user.following.append(followed_user)
-    db.session.commit()
+    form = CSRFProtectFrom()
 
-    return redirect(f"/users/{g.user.id}/following")
+    if form.validate_on_submit():
+        followed_user = User.query.get_or_404(follow_id)
+        g.user.following.append(followed_user)
+        db.session.commit()
+        return redirect(f"/users/{g.user.id}/following")
+
+    else:
+        flash("Error processing request")
+        return redirect("/")
 
 
 @app.post('/users/stop-following/<int:follow_id>')
+# @authenticate_login
 def stop_following(follow_id):
     """Have currently-logged-in-user stop following this user.
 
     Redirect to following page for the current for the current user.
     """
-
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    followed_user = User.query.get_or_404(follow_id)
-    g.user.following.remove(followed_user)
-    db.session.commit()
+    form = CSRFProtectFrom()
 
-    return redirect(f"/users/{g.user.id}/following")
+    if form.validate_on_submit():
+        followed_user = User.query.get_or_404(follow_id)
+        g.user.following.remove(followed_user)
+        db.session.commit()
+        return redirect(f"/users/{g.user.id}/following")
+
+    else:
+        flash("Error processing request")
+        return redirect("/")
 
 
 @app.route('/users/profile', methods=["GET", "POST"])
@@ -248,6 +264,7 @@ def profile():
 
 
 @app.post('/users/delete')
+# @authenticate_login
 def delete_user():
     """Delete user.
 
@@ -259,17 +276,24 @@ def delete_user():
         return redirect("/")
 
     do_logout()
+    form = CSRFProtectFrom()
 
-    db.session.delete(g.user)
-    db.session.commit()
+    if form.validate_on_submit():
 
-    return redirect("/signup")
+        db.session.delete(g.user)
+        db.session.commit()
+        return redirect("/signup")
 
+    else:
+        flash("Error processing request")
+        return redirect("/")
 
 ##############################################################################
 # Messages routes:
 
+
 @app.route('/messages/new', methods=["GET", "POST"])
+# @authenticate_login
 def add_message():
     """Add a message:
 
@@ -293,6 +317,7 @@ def add_message():
 
 
 @app.get('/messages/<int:message_id>')
+# @authenticate_login
 def show_message(message_id):
     """Show a message."""
 
@@ -305,6 +330,7 @@ def show_message(message_id):
 
 
 @app.post('/messages/<int:message_id>/delete')
+# @authenticate_login
 def delete_message(message_id):
     """Delete a message.
 
@@ -315,12 +341,17 @@ def delete_message(message_id):
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
+    form = CSRFProtectFrom()
 
-    msg = Message.query.get_or_404(message_id)
-    db.session.delete(msg)
-    db.session.commit()
+    if form.validate_on_submit():
+        msg = Message.query.get_or_404(message_id)
+        db.session.delete(msg)
+        db.session.commit()
+        return redirect(f"/users/{g.user.id}")
 
-    return redirect(f"/users/{g.user.id}")
+    else:
+        flash("Error processing request")
+        return redirect("/")
 
 
 ##############################################################################
