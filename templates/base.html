@@ -50,7 +50,12 @@
         </li>
         <li><a href="/messages/new">New Message</a></li>
         <li>
-          <form action="/logout" method="POST"><button>Log out</button></form>
+          <form action="/logout" method="POST">
+            {{ g.csrf_form.hidden_tag() }}
+            <button>
+              Log out
+            </button>
+          </form>
           <!-- FIXME: this button looks terrible -->
         </li>
         {% endif %}

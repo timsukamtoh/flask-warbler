@@ -91,8 +91,8 @@ class User(db.Model):
 
     followers = db.relationship(
         "User",
-        secondary="follows",
-        primaryjoin=(Follow.user_being_followed_id == id), #FIXME: just in case
+        secondary="follows",  # "secondary" keyword indicates the join table
+        primaryjoin=(Follow.user_being_followed_id == id),
         secondaryjoin=(Follow.user_following_id == id),
         backref="following",
     )
@@ -192,3 +192,4 @@ def connect_db(app):
     app.app_context().push()
     db.app = app
     db.init_app(app)
+#

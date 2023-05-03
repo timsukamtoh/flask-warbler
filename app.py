@@ -1,4 +1,5 @@
 import os
+import functools
 from dotenv import load_dotenv
 
 from flask import Flask, render_template, request, flash, redirect, session, g
@@ -26,16 +27,22 @@ connect_db(app)
 
 
 def authenticate_login(f):
-    def wrapper(*args, **kwargs):
+    @functools.wraps(f)
+    def login_wrapper(*args, **kwargs):
         if not g.user:
             flash("Access unauthorized.", "danger")
             return redirect("/")
         return f(*args, **kwargs)
 
-    return wrapper
+    return login_wrapper
 
 ##############################################################################
 # User signup/login/logout
+
+
+@app.before_request
+def apply_crsf_protect():
+    g.csrf_form = CSRFProtectFrom()
 
 
 @app.before_request
@@ -127,17 +134,16 @@ def login():
 def logout():
     """Handle logout of user and redirect to homepage."""
 
-    form = g.csrf_form = CSRFProtectFrom()
+    # form = g.csrf_form = CSRFProtectFrom()
 
-    if form.validate_on_submit():
+    if not g.csrf_form.validate_on_submit() or not g.user:
+        flash("Unauthorized Access Attempt")
+        return redirect('/')
+
+    else:
         flash("Logged Out Successfully")
         do_logout()
         return redirect("/login")
-    else:
-        flash("NO!")
-
-    # IMPLEMENT THIS AND FIX BUG
-    # DO NOT CHANGE METHOD ON ROUTE
 
 
 ##############################################################################
@@ -397,8 +403,11 @@ def homepage():
     """
 
     if g.user:
+        following_ids = [user.id for user in g.user.following] + [g.user.id]
+
         messages = (Message
                     .query
+                    .filter((Message.user_id.in_(following_ids)))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
