@@ -22,7 +22,7 @@
       <form method="POST" action="/{{ message.id }}/like">
         {{ g.csrf_form.hidden_tag() }}
         <button class="btn">
-          {% if liked %}
+          {% if message.id in liked_messages %}
           <i class="bi bi-binoculars-fill"></i>
           {% else %}
           <i class="bi bi-binoculars"></i>

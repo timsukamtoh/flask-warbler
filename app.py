@@ -186,7 +186,10 @@ def show_user(user_id):
 
     user = User.query.get_or_404(user_id)
 
-    return render_template('users/show.html', user=user)
+    likes = Like.query.filter(Like.liked_by_user_id == g.user.id).all()
+    liked_messages = [like.message_liked_id for like in likes]
+
+    return render_template('users/show.html', user=user, liked_messages=liked_messages)
 
 
 @app.get('/users/<int:user_id>/following')
@@ -355,8 +358,8 @@ def show_message(message_id):
     #     return redirect("/")
 
     msg = Message.query.get_or_404(message_id)
-    liked = Like.query.filter(Like.message_liked_id==message_id).one_or_none()
-
+    liked = Like.query.filter(Like.message_liked_id ==
+                              message_id).one_or_none()
 
     return render_template('messages/show.html', message=msg, liked=liked)
 
@@ -407,7 +410,7 @@ def homepage():
                     .limit(100)
                     .all())
 
-        likes = Like.query.filter(Like.liked_by_user_id==g.user.id).all()
+        likes = Like.query.filter(Like.liked_by_user_id == g.user.id).all()
         liked_messages = [like.message_liked_id for like in likes]
 
         return render_template('home.html', messages=messages, liked_messages=liked_messages)
@@ -449,3 +452,11 @@ def like_or_unlike(msg_id):
         return redirect(f"/messages/{msg_id}")
 
     return redirect("/")
+
+# TODO: Fix the like aref buttons on the home and details page
+# TODO: Add a counter to the user details page that displays number of liked messages
+# TODO: Make a page that displays all messages liked by current user (that is attached to that displayed counter)
+# TODO: MAYBE: add a counter to each message to show how many likes it has ¯\_(ツ)_/¯
+# TODO: Add logic to inhibit liking our own posts
+# TODO: Header photo looks like poopy
+# QUESTION: How do we look at warbles from people we don't follow?
