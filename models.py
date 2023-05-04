@@ -188,6 +188,12 @@ class Message(db.Model):
         backref="liked_messages",
     )
 
+    likes = db.relationship(
+        "Like",
+        backref="message"
+    )
+
+
 class Like(db.Model):
     """Connection of a User <-> Liked Message."""
 
@@ -204,6 +210,7 @@ class Like(db.Model):
         db.ForeignKey('messages.id', ondelete="cascade"),
         primary_key=True,
     )
+
 
 def connect_db(app):
     """Connect this database to provided Flask app.

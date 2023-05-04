@@ -44,6 +44,9 @@
             {{ message.timestamp.strftime('%d %B %Y') }}
           </span>
         </div>
+        <form method="POST" action="/{{ message.id }}/like"><button class="btn"><i
+              class="bi bi-binoculars"></i></button>
+        </form>
       </li>
     </ul>
   </div>

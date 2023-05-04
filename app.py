@@ -245,7 +245,6 @@ def stop_following(follow_id):
     #     flash("Access unauthorized.", "danger")
     #     return redirect("/")
 
-
     if form.validate_on_submit():
         followed_user = User.query.get_or_404(follow_id)
         g.user.following.remove(followed_user)
@@ -260,7 +259,6 @@ def stop_following(follow_id):
 @app.route('/users/profile_edit', methods=["GET", "POST"])
 def edit_profile():
     """Edit profile for current user."""
-    #FIXME: use g.user
 
     # if not g.user:
     #     flash("Access unauthorized.", "danger")
@@ -414,3 +412,29 @@ def add_header(response):
     # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
     response.cache_control.no_store = True
     return response
+
+
+###############################################################
+# Likes
+
+@app.post('/<int:msg_id>/like')
+@authenticate_login
+def like_or_unlike(msg_id):
+    """ Likes or unlikes messages"""
+
+    like_message = Like.query.get((g.user.id, msg_id))
+
+    if g.csrf_form.validate_on_submit():
+        if like_message:
+            db.session.delete(like_message)
+            db.session.commit()
+            return redirect('/')
+
+        else:
+            new_like = Like(liked_by_user_id=g.user.id,
+                            message_liked_id=msg_id)
+            db.session.add(new_like)
+            db.session.add()
+
+        return redirect("/")
+    return redirect("/")
