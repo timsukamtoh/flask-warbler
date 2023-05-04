@@ -27,8 +27,12 @@ connect_db(app)
 
 
 def authenticate_login(f):
+    """Decorator to check login before every view function"""
+
     @functools.wraps(f)
     def login_wrapper(*args, **kwargs):
+        """ wrapper for login decorator"""
+
         if not g.user:
             flash("Access unauthorized.", "danger")
             return redirect("/")
@@ -43,6 +47,7 @@ def authenticate_login(f):
 @app.before_request
 def apply_csrf_protect():
     """add a CSRF token before requests"""
+
     g.csrf_form = CSRFProtectForm()
 
 
@@ -223,7 +228,7 @@ def start_following(follow_id):
     #     flash("Access unauthorized.", "danger")
     #     return redirect("/")
 
-    if form.validate_on_submit():
+    if g.csrf_form.validate_on_submit():
         followed_user = User.query.get_or_404(follow_id)
         g.user.following.append(followed_user)
         db.session.commit()
@@ -245,7 +250,7 @@ def stop_following(follow_id):
     #     flash("Access unauthorized.", "danger")
     #     return redirect("/")
 
-    if form.validate_on_submit():
+    if g.csrf_form.validate_on_submit():
         followed_user = User.query.get_or_404(follow_id)
         g.user.following.remove(followed_user)
         db.session.commit()
@@ -302,7 +307,7 @@ def delete_user():
 
     do_logout()
 
-    if form.validate_on_submit():
+    if g.csrf_form.validate_on_submit():
 
         db.session.delete(g.user)
         db.session.commit()
@@ -350,7 +355,10 @@ def show_message(message_id):
     #     return redirect("/")
 
     msg = Message.query.get_or_404(message_id)
-    return render_template('messages/show.html', message=msg)
+    liked = Like.query.filter(Like.message_liked_id==message_id).one_or_none()
+
+
+    return render_template('messages/show.html', message=msg, liked=liked)
 
 
 @app.post('/messages/<int:message_id>/delete')
@@ -366,7 +374,7 @@ def delete_message(message_id):
     #     flash("Access unauthorized.", "danger")
     #     return redirect("/")
 
-    if form.validate_on_submit():
+    if g.csrf_form.validate_on_submit():
         msg = Message.query.get_or_404(message_id)
         db.session.delete(msg)
         db.session.commit()
@@ -399,7 +407,10 @@ def homepage():
                     .limit(100)
                     .all())
 
-        return render_template('home.html', messages=messages)
+        likes = Like.query.filter(Like.liked_by_user_id==g.user.id).all()
+        liked_messages = [like.message_liked_id for like in likes]
+
+        return render_template('home.html', messages=messages, liked_messages=liked_messages)
 
     else:
         return render_template('home-anon.html')
@@ -428,13 +439,13 @@ def like_or_unlike(msg_id):
         if like_message:
             db.session.delete(like_message)
             db.session.commit()
-            return redirect('/')
 
         else:
             new_like = Like(liked_by_user_id=g.user.id,
                             message_liked_id=msg_id)
             db.session.add(new_like)
-            db.session.add()
+            db.session.commit()
 
-        return redirect("/")
+        return redirect(f"/messages/{msg_id}")
+
     return redirect("/")

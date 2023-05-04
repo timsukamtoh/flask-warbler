@@ -44,8 +44,15 @@
             {{ message.timestamp.strftime('%d %B %Y') }}
           </span>
         </div>
-        <form method="POST" action="/{{ message.id }}/like"><button class="btn"><i
-              class="bi bi-binoculars"></i></button>
+        <form method="POST" action="/{{ message.id }}/like">
+          {{ g.csrf_form.hidden_tag() }}
+          <button class="btn">
+            {% if liked %}
+            <i class="bi bi-binoculars-fill"></i>
+            {% else %}
+            <i class="bi bi-binoculars"></i>
+            {% endif %}
+          </button>
         </form>
       </li>
     </ul>

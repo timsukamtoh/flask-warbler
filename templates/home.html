@@ -55,7 +55,15 @@
           <span class="text-muted">{{ msg.timestamp.strftime('%d %B %Y') }}</span>
           <p>{{ msg.text }}</p>
         </div>
-        <form method="POST" action="/{{ msg.id }}/like"><button class="btn"><i class="bi bi-binoculars"></i></button>
+        <form method="POST" action="/{{ msg.id }}/like">
+          {{ g.csrf_form.hidden_tag() }}
+          <button class="btn">
+            {% if msg.id in liked_messages %}
+            <i class="bi bi-binoculars-fill"></i>
+            {% else %}
+            <i class="bi bi-binoculars"></i>
+            {% endif %}
+          </button>
         </form>
 
       </li>
