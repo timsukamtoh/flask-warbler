@@ -17,7 +17,7 @@ app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 app.config['SQLALCHEMY_ECHO'] = False
-app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = True
+app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
 toolbar = DebugToolbarExtension(app)
 
@@ -186,10 +186,7 @@ def show_user(user_id):
 
     user = User.query.get_or_404(user_id)
 
-    likes = Like.query.filter(Like.liked_by_user_id == g.user.id).all()
-    liked_messages = [like.message_liked_id for like in likes]
-
-    return render_template('users/show.html', user=user, liked_messages=liked_messages)
+    return render_template('users/show.html', user=user)
 
 
 @app.get('/users/<int:user_id>/following')
@@ -235,7 +232,7 @@ def start_following(follow_id):
         followed_user = User.query.get_or_404(follow_id)
         g.user.following.append(followed_user)
         db.session.commit()
-        return redirect(f"/users/{g.user.id}/following")
+        return redirect(request.referrer)
 
     else:
         flash("Error processing request")
@@ -257,7 +254,7 @@ def stop_following(follow_id):
         followed_user = User.query.get_or_404(follow_id)
         g.user.following.remove(followed_user)
         db.session.commit()
-        return redirect(f"/users/{g.user.id}/following")
+        return redirect(request.referrer)
 
     else:
         flash("Error processing request")
@@ -410,10 +407,7 @@ def homepage():
                     .limit(100)
                     .all())
 
-        likes = Like.query.filter(Like.liked_by_user_id == g.user.id).all()
-        liked_messages = [like.message_liked_id for like in likes]
-
-        return render_template('home.html', messages=messages, liked_messages=liked_messages)
+        return render_template('home.html', messages=messages)
 
     else:
         return render_template('home-anon.html')
@@ -439,9 +433,8 @@ def like_or_unlike(msg_id):
     like_message = Like.query.get((g.user.id, msg_id))
     msg = Message.query.get_or_404(msg_id)
 
-    if msg.user_id == g.user.id:
-        flash("Cannot like your own posts.", "danger")
-        return redirect(f"/messages/{msg_id}")
+    if msg.user_id == g.user.id: #TODO: perform this logic in templates
+        return redirect(request.referrer) #TODO: maybe use request.url in template
 
     if g.csrf_form.validate_on_submit():
         if like_message:
@@ -454,9 +447,7 @@ def like_or_unlike(msg_id):
             db.session.add(new_like)
             db.session.commit()
 
-        return redirect(f"/messages/{msg_id}")
-
-    return redirect("/")
+    return redirect(request.referrer)
 
 
 @app.get('/users/<int:user_id>/liked-messages')
@@ -470,9 +461,6 @@ def show_liked_messages(user_id):
     return render_template("/users/liked-messages.html", messages=messages, user=user)
 
 # TODO: Fix the like aref buttons on the home and details page
-# TODO: Add a counter to the user details page that displays number of liked messages
-# TODO: Make a page that displays all messages liked by current user (that is attached to that displayed counter)
 # TODO: MAYBE: add a counter to each message to show how many likes it has ¯\_(ツ)_/¯
-# TODO: Add logic to inhibit liking our own posts
 # TODO: Header photo looks like poopy
 # QUESTION: How do we look at warbles from people we don't follow?

@@ -99,7 +99,6 @@ class User(db.Model):
         primaryjoin=(Follow.user_being_followed_id == id),
         secondaryjoin=(Follow.user_following_id == id),
         backref="following",
-
     )
 
     def __repr__(self):
@@ -191,7 +190,6 @@ class Message(db.Model):
         "User",
         secondary="likes",
         backref="liked_messages",
-
     )
 
     likes = db.relationship(
