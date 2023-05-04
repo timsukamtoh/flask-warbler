@@ -437,6 +437,11 @@ def like_or_unlike(msg_id):
     """ Likes or unlikes messages"""
 
     like_message = Like.query.get((g.user.id, msg_id))
+    msg = Message.query.get_or_404(msg_id)
+
+    if msg.user_id == g.user.id:
+        flash("Cannot like your own posts.", "danger")
+        return redirect(f"/messages/{msg_id}")
 
     if g.csrf_form.validate_on_submit():
         if like_message:
@@ -452,6 +457,17 @@ def like_or_unlike(msg_id):
         return redirect(f"/messages/{msg_id}")
 
     return redirect("/")
+
+
+@app.get('/users/<int:user_id>/liked-messages')
+@authenticate_login
+def show_liked_messages(user_id):
+    """ Shows all messages liked by current user"""
+
+    user = User.query.get_or_404(user_id)
+    messages = user.liked_messages
+
+    return render_template("/users/liked-messages.html", messages=messages, user=user)
 
 # TODO: Fix the like aref buttons on the home and details page
 # TODO: Add a counter to the user details page that displays number of liked messages

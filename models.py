@@ -87,7 +87,11 @@ class User(db.Model):
         nullable=False,
     )
 
-    messages = db.relationship('Message', backref="user")
+    messages = db.relationship(
+        'Message',
+        backref="user",
+        cascade='all, delete-orphan'
+    )
 
     followers = db.relationship(
         "User",
@@ -95,6 +99,7 @@ class User(db.Model):
         primaryjoin=(Follow.user_being_followed_id == id),
         secondaryjoin=(Follow.user_following_id == id),
         backref="following",
+
     )
 
     def __repr__(self):
@@ -184,13 +189,15 @@ class Message(db.Model):
 
     liked_by_users = db.relationship(
         "User",
-        secondary="likes",  # "secondary" keyword indicates the join table
+        secondary="likes",
         backref="liked_messages",
+
     )
 
     likes = db.relationship(
         "Like",
-        backref="message"
+        backref="message",
+        cascade='all, delete-orphan'
     )
 
 
