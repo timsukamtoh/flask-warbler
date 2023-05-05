@@ -1,4 +1,7 @@
 """Message View tests."""
+from models import Message, User
+from unittest import TestCase
+from app import app, CURR_USER_KEY, db
 import os
 
 os.environ['DATABASE_URL'] = "postgresql:///warbler_test"
@@ -7,17 +10,10 @@ os.environ['DATABASE_URL'] = "postgresql:///warbler_test"
 #    FLASK_DEBUG=False python -m unittest test_message_views.py
 
 
-from app import app, CURR_USER_KEY, db
-
-from unittest import TestCase
-
-from models import Message, User
-
 # BEFORE we import our app, let's set an environmental variable
 # to use a different database for tests (we need to do this
 # before we import our app, since that will have already
 # connected to the database
-
 
 
 # Now we can import app
@@ -75,7 +71,7 @@ class MessageAddViewTestCase(MessageBaseViewTestCase):
             # Now, that session setting is saved, so we can have
             # the rest of ours test
             resp = c.post("/messages/new", data={"text": "message_test"},
-                follow_redirects=True)
+                          follow_redirects=True)
             html = resp.get_data(as_text=True)
 
             m2 = Message.query.filter_by(text="message_test").one()
@@ -134,7 +130,8 @@ class MessageAddViewTestCase(MessageBaseViewTestCase):
             with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = self.u1_id
 
-            resp = c.post(f"/messages/{self.m1_id}/delete",follow_redirects=True)
+            resp = c.post(
+                f"/messages/{self.m1_id}/delete", follow_redirects=True)
             html = resp.get_data(as_text=True)
 
             self.assertEqual(resp.status_code, 200)
@@ -148,8 +145,8 @@ class MessageAddViewTestCase(MessageBaseViewTestCase):
             with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = self.u2_id
 
-
-            resp = c.post(f"/messages/{self.m1_id}/delete",follow_redirects=True)
+            resp = c.post(
+                f"/messages/{self.m1_id}/delete", follow_redirects=True)
             html = resp.get_data(as_text=True)
 
             m1 = Message.query.get(self.m1_id)
@@ -159,7 +156,16 @@ class MessageAddViewTestCase(MessageBaseViewTestCase):
             self.assertIn("<!-- Homepage for logged in -->", html)
             self.assertEqual(m1.text, "m1-text")
 
+    def test_like_message(self):
+        """Test for functional and successful like button """
 
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u2_id
 
+            resp = c.post(f"/{self.m1_id}/like",
+                          headers={"Referer": f"/messages/{self.m1_id}"}, follow_redirects=True)
+            html = resp.get_data(as_text=True)
 
-
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("-fill", html)

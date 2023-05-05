@@ -1,17 +1,15 @@
 """Message View tests."""
+from models import Message, User
+from unittest import TestCase
+from app import app, CURR_USER_KEY, db
 import os
 
 os.environ['DATABASE_URL'] = "postgresql:///warbler_test"
+
 # run these tests like:
 #
 #    FLASK_DEBUG=False python -m unittest test_message_views.py
 
-
-from app import app, CURR_USER_KEY, db
-
-from unittest import TestCase
-
-from models import Message, User
 
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 FLASK_DEBUG = False
@@ -29,6 +27,7 @@ class UserModelCredentialsTestCase(TestCase):
 
         u1 = User.signup("u1", "u1@email.com", "password", None)
         u2 = User.signup("u2", "u2@email.com", "password", None)
+        db.session.flush()
 
         db.session.commit()
         self.u1_id = u1.id
@@ -36,16 +35,58 @@ class UserModelCredentialsTestCase(TestCase):
 
         self.client = app.test_client()
 
+    def tearDown(self):
+        db.session.rollback()
+
+    def test_login_get_request(self):
+
+        with self.client as c:
+            resp = c.get("/login")
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("<!-- Login page -->", html)
+
+    def test_valid_login(self):
+
         with self.client as c:
             resp = c.post("/login",
                           data={
                               "username": "u1",
                               "password": "password",
                           },
+                          follow_redirects=True
                           )
 
-    def tearDown(self):
-        db.session.rollback()
+            html = resp.get_data(as_text=True)
+
+            self.assertIn("u1", html)
+            self.assertIn("Homepage for logged in", html)
+
+    def test_invalid_login(self):
+
+        with self.client as c:
+            resp = c.post("/login",
+                          data={
+                              "username": "u1",
+                              "password": "Wrong_Password",
+                          },
+                          follow_redirects=True
+
+                          )
+
+            html = resp.get_data(as_text=True)
+
+            self.assertIn("<!-- Login page -->", html)
+            self.assertIn("Invalid credentials", html)
+
+# with self.client as c:
+#     with c.session_transaction() as sess:
+#         sess[CURR_USER_KEY] = self.u1_id
+
+#     resp = c.post(
+#         f"/messages/{self.m1_id}/delete", follow_redirects=True)
+#     html = resp.get_data(as_text=True)
 
 
 """Does is_following successfully detect when user1 is following user2?
