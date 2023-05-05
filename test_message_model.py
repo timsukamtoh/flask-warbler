@@ -1,15 +1,18 @@
 """Message model tests."""
+import os
+
+os.environ["DATABASE_URL"] = "postgresql:///warbler_test"
 
 # run these tests like:
 #
 #    python -m unittest test_message_model.py
 
-from models import db, User, Message, Follow, Like
+from models import User, Message, Follow, Like
 from unittest import TestCase
-from app import app
-import os
+from app import app, db
 
-os.environ["DATABASE_URL"] = "postgresql:///warble_test"
+
+
 
 
 # BEFORE we import our app, let's set an environmental variable
@@ -54,7 +57,9 @@ class MessageModelTestCase(TestCase):
     def tearDown(self):
         db.session.rollback()
 
-    def test_messages_model(self):
+    def test_valid_messages_model(self):
+        """Check that messages were create for user 1"""
+
         u1 = User.query.get(self.u1_id)
         u2 = User.query.get(self.u2_id)
 
@@ -62,15 +67,48 @@ class MessageModelTestCase(TestCase):
         self.assertEqual(len(u1.messages), 1)
         self.assertEqual(len(u2.messages), 0)
 
-    def test_datatypes(self):
+    def test_valid_datatypes(self):
         """check that message data types are correct"""
 
         msg = Message.query.get(self.msg1_id)
 
         self.assertIsInstance(msg.id, int)
         self.assertIsInstance(msg.user_id, int)
-        self.assertIsInstance(msg.liked_by_users, list)
         self.assertEqual(len(msg.likes), 0)
 
+    def test_valid_user_relationship(self):
+        """check that message has a valid user owner"""
 
-# TODO: Test the likes - throw some stank on them messages and see if it sticks
+        u1 = User.query.get(self.u1_id)
+        msg = Message.query.get(self.msg1_id)
+
+        self.assertEqual(msg.user, u1)
+
+    def test_valid_likes_relationship(self):
+        """check that message has a valid user owner"""
+
+        u2 = User.query.get(self.u2_id)
+        msg = Message.query.get(self.msg1_id)
+        new_like = Like(liked_by_user_id=u2.id,
+                            message_liked_id=msg.id)
+        db.session.add(new_like)
+        db.session.commit()
+
+        self.assertIsInstance(msg.likes, list)
+        self.assertEqual(len(msg.likes), 1)
+
+    def test_valid_liked_by_user_relationship(self):
+        """check that message has a valid user owner"""
+
+        u2 = User.query.get(self.u2_id)
+        msg = Message.query.get(self.msg1_id)
+        new_like = Like(liked_by_user_id=u2.id,
+                            message_liked_id=msg.id)
+        db.session.add(new_like)
+        db.session.commit()
+
+        self.assertIsInstance(msg.liked_by_users, list)
+        self.assertEqual(msg.liked_by_users[0], u2)
+        self.assertEqual(len(msg.likes), 1)
+
+

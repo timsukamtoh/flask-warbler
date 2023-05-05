@@ -184,7 +184,6 @@ def show_user(user_id):
     #     return redirect("/")
 
     user = User.query.get_or_404(user_id)
-    breakpoint()
 
     return render_template('users/show.html', user=user)
 
@@ -376,6 +375,11 @@ def delete_message(message_id):
 
     if g.csrf_form.validate_on_submit():
         msg = Message.query.get_or_404(message_id)
+
+        if g.user.id != msg.user_id:
+            flash("Access unauthorized.", "danger")
+            return redirect("/")
+
         db.session.delete(msg)
         db.session.commit()
         return redirect(f"/users/{g.user.id}")

@@ -1,4 +1,24 @@
+"""Message View tests."""
+import os
+
+os.environ['DATABASE_URL'] = "postgresql:///warbler_test"
+# run these tests like:
+#
+#    FLASK_DEBUG=False python -m unittest test_message_views.py
+
+
+from app import app, CURR_USER_KEY, db
+
+from unittest import TestCase
+
+from models import Message, User
+
+app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 FLASK_DEBUG = False
+
+# This is a bit of hack, but don't use Flask DebugToolbar
+
+app.config['DEBUG_TB_HOSTS'] = ['dont-show-debug-toolbar']
 
 
 class UserModelCredentialsTestCase(TestCase):
