@@ -37,10 +37,20 @@ body.error-404 {
   font-weight: bold;
 }
 
-.navbar a:hover {
+.navbar a:hover, #logout:hover {
   color: #1c94e0;
 }
 
+#logout {
+  background: none;
+	color: #66757f;
+  font-size: 14.3px;
+  font-weight: bold;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+  text-decoration: underline;
+}
 .navbar-brand {
   display: flex;
   align-items: center;
