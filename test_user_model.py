@@ -4,7 +4,6 @@
 #
 #    python -m unittest test_user_model.py
 
-
 from app import app
 import os
 from unittest import TestCase
@@ -16,6 +15,7 @@ from models import db, User, Message, Follow, DEFAULT_IMAGE_URL, DEFAULT_HEADER_
 # to use a different database for tests (we need to do this
 # before we import our app, since that will have already
 # connected to the database
+app.config['TESTING'] = True
 
 os.environ['DATABASE_URL'] = "postgresql:///warbler_test"
 FLASK_DEBUG = False
@@ -59,8 +59,8 @@ class UserModelTestCase(TestCase):
         self.assertEqual(len(u1.followers), 0)
         self.assertEqual(len(u2.messages), 0)
         self.assertEqual(len(u2.followers), 0)
-        self.assertEqual(u1.image_url == DEFAULT_IMAGE_URL)
-        self.assertEqual(u1.header_image_url == DEFAULT_HEADER_IMAGE_URL)
+        self.assertEqual(u1.image_url, DEFAULT_IMAGE_URL)
+        self.assertEqual(u1.header_image_url, DEFAULT_HEADER_IMAGE_URL)
 
     def test_follow(self):
         """ Test to see if u1 can follow u2
@@ -88,17 +88,21 @@ class UserModelTestCase(TestCase):
         """Testing class method authenticate() failer"""
 
         # Wrong username
-        self.assertIsNone(User.authenticate(
+        self.assertFalse(User.authenticate(
             username="wrong", password="password"))
 
         # Wrong password
-        self.assertIsNone(User.authenticate(username="u1", password="wrong"))
+        self.assertFalse(User.authenticate(username="u1", password="wrong"))
 
     def test_signup(self):
         """Check for new user signup"""
 
         good_test = User.signup(
             "good_test", "good_test@email.com", "password", None)
+        db.session.add(good_test)
+        db.session.commit()
+
+        # Integrity Error test (Doctests don't allow for )
 
         # Test successful registration
         self.assertIsInstance(good_test, User)
@@ -106,8 +110,14 @@ class UserModelTestCase(TestCase):
         self.assertEqual(len(good_test.followers), 0)
 
         # Same email fail register
-        self.assertIsInstance(User.signup(
-            "bad_test", "good_test@email.com", "password", None), IntegrityError)
+        with self.assertRaises(IntegrityError):
+            db.session.add(User.signup(
+                "bad_test", "good_test@email.com", "password", None))
+            db.session.commit()
+        db.session.rollback()
+
         # Same username fail register
-        self.assertIsInstance(User.signup(
-            "good_test", "bad_test@email.com", "password", None), IntegrityError)
+        with self.assertRaises(IntegrityError):
+            db.session.add(User.signup(
+                "good_test", "bad_test@email.com", "password", None))
+            db.session.commit()
