@@ -1,23 +1,28 @@
 """Message View tests."""
-from models import Message, User
-from unittest import TestCase
-from app import app, CURR_USER_KEY, db
+
 import os
+
 os.environ['DATABASE_URL'] = "postgresql:///warbler_test"
 
+from unittest import TestCase
+
+from app import app, CURR_USER_KEY, db
+from models import Message, User
 
 # run these tests like:
 #
 #    FLASK_DEBUG=False python -m unittest test_message_views.py
-
-
+app.config['WTF_CSRF_ENABLED'] = False
+# Make Flask errors be real errors, rather than HTML pages with error info
+app.config['TESTING'] = True
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
-FLASK_DEBUG = False
+
 
 # This is a bit of hack, but don't use Flask DebugToolbar
-
 app.config['DEBUG_TB_HOSTS'] = ['dont-show-debug-toolbar']
 
+db.drop_all()
+db.create_all()
 
 class UserModelCredentialsTestCase(TestCase):
     """Test of User class and Follow class/ join table"""
@@ -47,7 +52,7 @@ class UserModelCredentialsTestCase(TestCase):
             self.assertEqual(resp.status_code, 200)
             self.assertIn("<!-- Login page -->", html)
 
-    def test_valid_login(self):  # FIXME:
+    def test_valid_login(self):
         """ successful post request test"""
         with self.client as c:
             resp = c.post("/login",
@@ -63,9 +68,12 @@ class UserModelCredentialsTestCase(TestCase):
             self.assertIn("u1", html)
             self.assertIn("Homepage for logged in", html)
 
-    def test_invalid_login(self):  # FIXME:
+    def test_invalid_login(self):
         """ Failed post request test"""
         with self.client as c:
+            # get = c.get("/login")
+            # print(get)
+            # breakpoint()
             resp = c.post("/login",
                           data={
                               "username": "u1",
@@ -90,11 +98,11 @@ class UserModelCredentialsTestCase(TestCase):
             self.assertEqual(resp.status_code, 200)
             self.assertIn("<!-- NewUser Signup Page -->", html)
 
-    def test_signup_post(self):  # FIXME:
+    def test_signup_post(self):
         """Post Request to register new user"""
 
         with self.client as c:
-            resp = c.post("/login",
+            resp = c.post("/signup",
                           data={
                               "username": "u3",
                               "password": "tatersalad",
@@ -137,6 +145,50 @@ class UserModelCredentialsTestCase(TestCase):
             self.assertEqual(resp.status_code, 200)
             self.assertIn("u1", html)
             self.assertIn("<!-- User's Profile Page -->", html)
+
+    def test_show_following(self):
+        """Show list of users the user is following"""
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            resp = c.get(f"/users/{self.u1_id}/following")
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("<!-- Following HTML -->", html)
+            #TODO: add follower, test if in-html
+
+    def test_show_followers(self):
+        """Show list of users following user"""
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            resp = c.get(f"/users/{self.u1_id}/followers")
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("<!-- Followers HTML -->", html)
+
+
+    def test_start_following(self):
+        """Test to add a new follow"""
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            resp = c.post(f"/users/follow/{self.u2_id}",
+                         headers={"Referer": f"/users/{self.u2_id}"},
+                         follow_redirects=True
+                    )
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("u2", html)
+            self.assertIn("Unfollow", html)
+
 
 
 # with self.client as c:
