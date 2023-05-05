@@ -19,7 +19,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 app.config['SQLALCHEMY_ECHO'] = False
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
-toolbar = DebugToolbarExtension(app)
+# toolbar = DebugToolbarExtension(app)
 
 connect_db(app)
 
@@ -160,7 +160,6 @@ def list_users():
 
     Can take a 'q' param in querystring to search by that username.
     """
-
     # if not g.user:
     #     flash("Access unauthorized.", "danger")
     #     return redirect("/")
@@ -185,6 +184,7 @@ def show_user(user_id):
     #     return redirect("/")
 
     user = User.query.get_or_404(user_id)
+    breakpoint()
 
     return render_template('users/show.html', user=user)
 
@@ -433,8 +433,9 @@ def like_or_unlike(msg_id):
     like_message = Like.query.get((g.user.id, msg_id))
     msg = Message.query.get_or_404(msg_id)
 
-    if msg.user_id == g.user.id: #TODO: perform this logic in templates
-        return redirect(request.referrer) #TODO: maybe use request.url in template
+    if msg.user_id == g.user.id:  # TODO: perform this logic in templates
+        # TODO: maybe use request.url in template
+        return redirect(request.referrer)
 
     if g.csrf_form.validate_on_submit():
         if like_message:

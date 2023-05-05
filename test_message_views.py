@@ -5,6 +5,7 @@
 #    FLASK_DEBUG=False python -m unittest test_message_views.py
 
 
+from app import app, CURR_USER_KEY
 import os
 from unittest import TestCase
 
@@ -19,9 +20,9 @@ os.environ['DATABASE_URL'] = "postgresql:///warbler_test"
 
 # Now we can import app
 
-from app import app, CURR_USER_KEY
 
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
+FLASK_DEBUG = False
 
 # This is a bit of hack, but don't use Flask DebugToolbar
 
